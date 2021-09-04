@@ -1,6 +1,6 @@
 ;; The first three lines of this file were inserted by DrRacket. They record metadata
 ;; about the language level of this file in a form that our tools can easily process.
-#reader(lib "htdp-beginner-abbr-reader.ss" "lang")((modname space-invaders-starter) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
+#reader(lib "htdp-beginner-abbr-reader.ss" "lang")((modname space-invaders) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
 (require 2htdp/universe)
 (require 2htdp/image)
 
@@ -106,4 +106,38 @@
 (define G1 (make-game empty empty T1))
 (define G2 (make-game (list I1) (list M1) T1))
 (define G3 (make-game (list I1 I2) (list M1 M2) T1))
+
+;; Game -> Game
+(define (main g)
+  (big-bang g                    ; Game
+    (on-tick next-game-state)    ; Game -> Game
+    (to-draw render-game)        ; Game -> Image
+    (on-key control-tank)        ; Game kevt -> Game
+    (stop-when invader-landed?))); Game -> Boolean
+
+;; Game -> Game
+;; produces next game state after a clock tick
+;; !!!
+
+(define (next-game-state g) G0) ;stub
+
+;; Game -> Image
+;; renders given game state as image
+;; !!!
+
+(define (render-game g) BACKGROUND) ;stub
+
+;; Game kevt -> Game
+;; produces next game state by moving tank left/right on left/right arrow keys
+;;   shoots missiles whne spacebar is pressed
+;; !!!
+
+(define (control-tank g kevt) G0) ;stub
+
+;; Game -> Boolean
+;; produces true if invader reaches land
+;; !!!
+
+(define (invader-landed? g) false) ;stub
+
 
