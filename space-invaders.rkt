@@ -117,9 +117,75 @@
 
 ;; Game -> Game
 ;; produces next game state after a clock tick
+(check-expect (next-game-state G0) G0) ;only tank
+(check-expect (next-game-state G1) G1) ;only tank
+(check-expect (next-game-state G2) (make-game
+                                    (list (make-invader (+ (invader-x I1)
+                                                           (invader-dx I1))
+                                                        (+ (invader-y I1)
+                                                           INVADER-Y-SPEED)
+                                                        (invader-dx I1)))
+                                    (list (make-missile (missile-x M1)
+                                                        (- (missile-y M1)
+                                                           MISSILE-SPEED)))
+                                    T1))
+
+;(define (next-game-state s) G0) ;stub
+
+(define (next-game-state s)
+  (make-game (advance-invaders (game-invaders s))
+             (advance-missiles (game-missiles s))
+             (game-tank s)))
+
+;; (listof Invader) -> (listof Invader)
+;; advance each invader in the list by (invader-dx) and INVADER-Y-SPEED
+(check-expect (advance-invaders empty) empty)
+(check-expect (advance-invaders (list I1)) (list (make-invader (+ (invader-x I1)
+                                                                  (invader-dx I1))
+                                                               (+ (invader-y I1)
+                                                                  INVADER-Y-SPEED)
+                                                               (invader-dx I1))))
+(check-expect (advance-invaders (list I1 I2)) (list (make-invader (+ (invader-x I1)
+                                                                     (invader-dx I1))
+                                                                  (+ (invader-y I1)
+                                                                     INVADER-Y-SPEED)
+                                                                  (invader-dx I1))
+                                                    (make-invader (+ (invader-x I2)
+                                                                     (invader-dx I2))
+                                                                  (+ (invader-y I2)
+                                                                     INVADER-Y-SPEED)
+                                                                  (invader-dx I2))))
+
+;(define (advance-invaders loi) (list I1)) stub
+
+(define (advance-invaders loi)
+  (cond [(empty? loi) empty]
+        [else (cons (advance-invader (first loi))
+                    (advance-invaders (rest loi)))]))
+
+;; Invader -> Invader
+;; advances a single invader by (invader-dx) and INVADER-Y-SPEED
+(check-expect (advance-invader I1)  (make-invader (+ (invader-x I1)
+                                                     (invader-dx I1))
+                                                  (+ (invader-y I1)
+                                                     INVADER-Y-SPEED)
+                                                  (invader-dx I1)))
+
+;(define (advance-invader i) I1)
+
+(define (advance-invader invader)
+  (make-invader (+ (invader-x invader)
+                   (invader-dx invader))
+                (+ (invader-y invader)
+                   INVADER-Y-SPEED)
+                (invader-dx invader)))
+
+;; (listof Missile) -> (listof Missile)
+;; advance each missile in the list upward by MISSILE-SPEED
 ;; !!!
 
-(define (next-game-state g) G0) ;stub
+(define (advance-missiles lom) (list M1))
+
 
 ;; Game -> Image
 ;; renders given game state as image
