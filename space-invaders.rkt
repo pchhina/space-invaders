@@ -470,10 +470,10 @@
 ;; Tank -> Image
 ;; render tank onto background
 (check-expect (render-tank T0) (place-image
-                                    TANK
-                                    (tank-x T0)
-                                    (- HEIGHT TANK-HEIGHT/2)
-                                    BACKGROUND))
+                                TANK
+                                (tank-x T0)
+                                (- HEIGHT TANK-HEIGHT/2)
+                                BACKGROUND))
 ;(define (render-tank t) BACKGROUND) ;stub
 
 (define (render-tank t)
@@ -481,10 +481,95 @@
 
 ;; Game kevt -> Game
 ;; produces next game state by moving tank left/right on left/right arrow keys
-;;   shoots missiles whne spacebar is pressed
-;; !!!
+;;   shoots missiles when spacebar is pressed
+(check-expect (control-tank G0 "left")
+              (make-game (game-invaders G0) (game-missiles G0) (make-tank
+                                                                (+ (tank-x (game-tank G0))
+                                                                   (* (tank-dir (game-tank G0))
+                                                                      TANK-SPEED))
+                                                                -1)  ))
+(check-expect (control-tank G0 "right")
+              (make-game (game-invaders G0) (game-missiles G0) (make-tank
+                                                                (+ (tank-x (game-tank G0))
+                                                                   (* (tank-dir (game-tank G0))
+                                                                      TANK-SPEED))
+                                                                1)  ))
+(check-expect (control-tank G0 "down") G0)
+(check-expect (control-tank G0 " ")
+              (make-game (game-invaders G0)
+                         (cons (make-missile
+                                (tank-x (game-tank G0))
+                                (- HEIGHT TANK-HEIGHT/2))
+                               (game-missiles G0))
+                         (game-tank G0)))
 
-(define (control-tank g kevt) G0) ;stub
+;(define (control-tank g kevt) G0) ;stub
+
+(define (control-tank g kevt)
+  (cond [(key=? kevt "left") (move-tank-left g)]
+        [(key=? kevt "right") (move-tank-right g)]
+        [(key=? kevt " ") (shoot-missile g)]
+        [else g]))
+
+;; Game -> Game
+;; produces a game by moving tank left by TANK-SPEED in the given game
+(check-expect (move-tank-left G0)
+              (make-game (game-invaders G0) (game-missiles G0) (make-tank
+                                                                (+ (tank-x (game-tank G0))
+                                                                   (* (tank-dir (game-tank G0))
+                                                                      TANK-SPEED))
+                                                                -1)  ))
+
+;(define (move-tank-left g) G0) ;stub
+
+(define (move-tank-left s)
+  (make-game (game-invaders s)
+             (game-missiles s)
+             (make-tank
+              (+ (tank-x (game-tank s))
+                 (* (tank-dir (game-tank s))
+                    TANK-SPEED))
+              -1)))
+
+;; Game -> Game
+;; produce a game by moving tank right by TANK-SPEED in the given game
+(check-expect (move-tank-right G0)
+              (make-game (game-invaders G0) (game-missiles G0) (make-tank
+                                                                (+ (tank-x (game-tank G0))
+                                                                   (* (tank-dir (game-tank G0))
+                                                                      TANK-SPEED))
+                                                                1)  ))
+
+;(define (move-tank-right g) G0) ;stub
+
+(define (move-tank-right s)
+  (make-game (game-invaders s)
+             (game-missiles s)
+             (make-tank
+              (+ (tank-x (game-tank s))
+                 (* (tank-dir (game-tank s))
+                    TANK-SPEED))
+              1)))
+
+;; Game -> Game
+;; produce a game by shooting a missile from the tank in the given game
+(check-expect (shoot-missile G0)
+              (make-game (game-invaders G0)
+                         (cons (make-missile
+                                (tank-x (game-tank G0))
+                                (- HEIGHT TANK-HEIGHT/2))
+                               (game-missiles G0))
+                         (game-tank G0)))
+
+;(define (shoot-missile g) G0) ;stub
+
+(define (shoot-missile s)
+  (make-game (game-invaders s)
+             (cons (make-missile
+                    (tank-x (game-tank s))
+                    (- HEIGHT TANK-HEIGHT/2))
+                   (game-missiles s))
+             (game-tank s)))
 
 ;; Game -> Boolean
 ;; produces true if invader reaches land
