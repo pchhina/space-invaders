@@ -93,8 +93,8 @@
 ;; interp. the missile's location is x y in screen coordinates
 
 (define M1 (make-missile 150 300))                       ;not hit U1
-(define M2 (make-missile (invader-x I1) (+ (invader-y I1) 10)))  ;exactly hit U1
-(define M3 (make-missile (invader-x I1) (+ (invader-y I1)  5)))  ;> hit U1
+(define M2 (make-missile (invader-x I1) (+ (invader-y I1) 10)))  ;exactly hit I1
+(define M3 (make-missile (invader-x I1) (+ (invader-y I1)  5)))  ;> hit I1
 
 #;
 (define (fn-for-missile m)
@@ -134,7 +134,7 @@
 
 (define (next-game-state s)
   (make-game (advance-invaders (game-invaders s))
-             (advance-missiles (game-missiles s))
+             (advance-missiles (game-missiles s) (game-invaders s))
              (game-tank s)))
 
 ;; (listof Invader) -> (listof Invader)
@@ -180,11 +180,108 @@
                    INVADER-Y-SPEED)
                 (invader-dx invader)))
 
-;; (listof Missile) -> (listof Missile)
-;; advance each missile in the list upward by MISSILE-SPEED
-;; !!!
+;; (listof Missile) (listof Invader) -> (listof Missile)
+;; advance each missile in the list upward by MISSILE-SPEED,
+;;  remove the missile from list if it goes past the top or hits invader
+(check-expect (advance-missiles empty empty) empty) ;base case
+(check-expect (advance-missiles empty (list I1 I2)) empty) ; base case
+(check-expect (advance-missiles (list M1 M2) (list I2 I3)) ; not hitting ceiling or invader
+              (list (make-missile (missile-x M1)
+                                  (- (missile-y M1) MISSILE-SPEED))
+                    (make-missile (missile-x M2)
+                                  (- (missile-y M2) MISSILE-SPEED))))
+(check-expect (advance-missiles (list M1 M2) (list I1 I2)) ; M2 hitting I1
+              (list (make-missile (missile-x M1)
+                                  (- (missile-y M1) MISSILE-SPEED))))
+(check-expect (advance-missiles (list M1 M3) (list I1 I2)) ; M3 past I1
+              (list (make-missile (missile-x M1)
+                                  (- (missile-y M1) MISSILE-SPEED))))
+(check-expect (advance-missiles (list M1 (make-missile 150 0)) (list I2 I3)) ; missile hitting top
+              (list (make-missile (missile-x M1)
+                                  (- (missile-y M1) MISSILE-SPEED))))
+(check-expect (advance-missiles (list M1 (make-missile 150 (-(image-height MISSILE)))) ; missile past top
+                                (list I2 I3))
+              (list (make-missile (missile-x M1)
+                                  (- (missile-y M1) MISSILE-SPEED))))
 
-(define (advance-missiles lom) (list M1))
+;(define (advance-missiles lom loi) (list M1))
+
+(define (advance-missiles lom loi)
+  (remove-missiles (move-missiles lom) loi))
+
+;; (listOf Missile) -> (listof Missile)
+;; produces a (listof Missile) by advancing each missile by MISSILE-SPEED in input list
+(check-expect (move-missiles empty) empty)
+(check-expect (move-missiles (list M1))
+              (list (make-missile (missile-x M1)
+                                  (- (missile-y M1) MISSILE-SPEED))))
+(check-expect (move-missiles (list M1 M2))
+              (list (make-missile (missile-x M1)
+                                  (- (missile-y M1) MISSILE-SPEED))
+                    (make-missile (missile-x M2)
+                                  (- (missile-y M2) MISSILE-SPEED))))
+
+;(define (move-missiles lom) (list M1)) ;stub
+
+(define (move-missiles lom)
+  (cond [(empty? lom) empty]
+        [else (cons (move-missile (first lom))
+                    (move-missiles (rest lom)))]))
+
+;; Missile -> Missile
+;; move missile by MISSILE-SPEED
+
+;(define (move-missile m) M1) ;stub
+
+(define (move-missile m)
+  (make-missile (missile-x m) (- (missile-y m) MISSILE-SPEED)))
+
+(define (remove-missiles lom loi)
+  (cond [(empty? lom) empty]
+        [else (if (or (missile-exit? (first lom))
+                      (missile-hit? (first lom) loi))
+                  (remove-missiles (rest lom) loi)
+                  (cons (first lom)
+                        (remove-missiles (rest lom) loi)))]))
+
+;; Missile -> Boolean
+;; produces true if the given missile has exited from top
+(check-expect (missile-exit? M1) false)
+(check-expect (missile-exit? (make-missile 150 (-(image-height MISSILE)))) true)
+
+;(define (missile-exit? m) false)
+
+(define (missile-exit? m)
+  (< (missile-y m) 0))
+
+;; Missle (listof Invader) -> Boolean
+;; produces true if the given missile is within the hit range of given list of invaders
+(check-expect (missile-hit? M1 empty) false)
+(check-expect (missile-hit? M2 (list I1 I2 I3)) true)
+(check-expect (missile-hit? M3 (list I2 I3)) false)
+(check-expect (missile-hit? M3 (list I1 I3)) true)
+
+;(define (missile-hit? m loi) false) ;stub
+
+(define (missile-hit? m loi)
+  (cond [(empty? loi) false]
+        [else (or
+               (in-range? m (first loi))
+               (missile-hit? m (rest loi)))]))
+
+;; Missile Invader -> Boolean
+;; produces true if the given missile is within hit range of given invader
+(check-expect (in-range? M1 I1) false)
+(check-expect (in-range? M2 I1) true)
+(check-expect (in-range? M3 I1) true)
+
+;(define (in-range? m i) false)
+
+(define (in-range? m i)
+  (<= (sqrt (+ (sqr (- (missile-x m) (invader-x i)))
+               (sqr (- (missile-y m) (invader-y i)))))
+      HIT-RANGE))
+
 
 
 ;; Game -> Image
