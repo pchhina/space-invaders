@@ -81,6 +81,7 @@
 (define I1 (make-invader 150 100 12))           ;not landed, moving right
 (define I2 (make-invader 150 HEIGHT -10))       ;exactly landed, moving left
 (define I3 (make-invader 150 (+ HEIGHT 10) 10)) ;> landed, moving right
+(define I4 (make-invader 138 100 12)) ; will hit M2 after both M2 and I4 move
 
 
 #;
@@ -133,52 +134,108 @@
 ;(define (next-game-state s) G0) ;stub
 
 (define (next-game-state s)
-  (make-game (advance-invaders (game-invaders s))
+  (make-game (advance-invaders (game-invaders s) (game-missiles s))
              (advance-missiles (game-missiles s) (game-invaders s))
              (game-tank s)))
 
-;; (listof Invader) -> (listof Invader)
+;; (listof Invader) (listof Missile) -> (listof Invader)
 ;; advance each invader in the list by (invader-dx) and INVADER-Y-SPEED
-(check-expect (advance-invaders empty) empty)
-(check-expect (advance-invaders (list I1)) (list (make-invader (+ (invader-x I1)
-                                                                  (invader-dx I1))
-                                                               (+ (invader-y I1)
-                                                                  INVADER-Y-SPEED)
-                                                               (invader-dx I1))))
-(check-expect (advance-invaders (list I1 I2)) (list (make-invader (+ (invader-x I1)
-                                                                     (invader-dx I1))
-                                                                  (+ (invader-y I1)
-                                                                     INVADER-Y-SPEED)
-                                                                  (invader-dx I1))
-                                                    (make-invader (+ (invader-x I2)
-                                                                     (invader-dx I2))
-                                                                  (+ (invader-y I2)
-                                                                     INVADER-Y-SPEED)
-                                                                  (invader-dx I2))))
+;; remove the invader from the list if it hits the missile
+(check-expect (advance-invaders empty empty) empty) ; base case
+(check-expect (advance-invaders empty (list M1 M2)) empty) ; base case
+(check-expect (advance-invaders (list I2 I3) (list M1 M2)) ; not hitting missile
+              (list (make-invader (+ (invader-x I2)
+                                     (invader-dx I2))
+                                  (+ (invader-y I2)
+                                     INVADER-Y-SPEED)
+                                  (invader-dx I2))
+                    (make-invader (+ (invader-x I3)
+                                     (invader-dx I3))
+                                  (+ (invader-y I3)
+                                     INVADER-Y-SPEED)
+                                  (invader-dx I3))))
+(check-expect (advance-invaders (list I2 I4) (list M1 M2)) ; I4 hitting M2
+              (list (make-invader (+ (invader-x I2)
+                                     (invader-dx I2))
+                                  (+ (invader-y I2)
+                                     INVADER-Y-SPEED)
+                                  (invader-dx I2))))
 
-;(define (advance-invaders loi) (list I1)) stub
 
-(define (advance-invaders loi)
+;(define (advance-invaders loi lom) (list I1)) stub
+
+(define (advance-invaders loi lom)
+  (remove-invaders (move-invaders loi) lom))
+
+;; (listOf Invader) -> (listof Invader)
+;; advances each invader in the given list by (invader-dx) and INVADER-Y-SPEED
+(check-expect (move-invaders empty) empty)
+(check-expect (move-invaders (list I1 I2))
+              (list (make-invader (+ (invader-x I1)
+                                     (invader-dx I1))
+                                  (+ (invader-y I1)
+                                     INVADER-Y-SPEED)
+                                  (invader-dx I1))
+                    (make-invader (+ (invader-x I2)
+                                     (invader-dx I2))
+                                  (+ (invader-y I2)
+                                     INVADER-Y-SPEED)
+                                  (invader-dx I2))))
+
+;(define (move-invaders loi) (list I1)) ; stub
+
+(define (move-invaders loi)
   (cond [(empty? loi) empty]
-        [else (cons (advance-invader (first loi))
-                    (advance-invaders (rest loi)))]))
+        [else (cons (move-invader (first loi))
+                    (move-invaders (rest loi)))]))
 
 ;; Invader -> Invader
 ;; advances a single invader by (invader-dx) and INVADER-Y-SPEED
-(check-expect (advance-invader I1)  (make-invader (+ (invader-x I1)
-                                                     (invader-dx I1))
-                                                  (+ (invader-y I1)
-                                                     INVADER-Y-SPEED)
-                                                  (invader-dx I1)))
+(check-expect (move-invader I1)  (make-invader (+ (invader-x I1)
+                                                  (invader-dx I1))
+                                               (+ (invader-y I1)
+                                                  INVADER-Y-SPEED)
+                                               (invader-dx I1)))
 
-;(define (advance-invader i) I1)
+;(define (move-invader i) I1)
 
-(define (advance-invader invader)
+(define (move-invader invader)
   (make-invader (+ (invader-x invader)
                    (invader-dx invader))
                 (+ (invader-y invader)
                    INVADER-Y-SPEED)
                 (invader-dx invader)))
+
+;; (listof Invader) (listof Missile) -> (listof Invader)
+;; removes invaders from the given list if it is within any missiles hit range
+(check-expect (remove-invaders empty empty) empty) ;base case
+(check-expect (remove-invaders (list I1 I2) empty) (list I1 I2)) ;base case
+(check-expect (remove-invaders empty (list M1 M2 M3)) empty) ;base case
+(check-expect (remove-invaders (list I2 I3) (list M2 M3)) (list I2 I3)) ; not hitting missile
+(check-expect (remove-invaders (list I1 I2 I3) (list M1 M2)) (list I2 I3)) ; I1 hitting M1,M2
+
+;(define (remove-invaders loi lom) (list I1)) ; stub
+(define (remove-invaders loi lom)
+  (cond [(empty? loi) empty]
+        [else (if (invader-hit? (first loi) lom)
+              (remove-invaders (rest loi) lom)
+              (cons (first loi)
+                    (remove-invaders (rest loi) lom)))]))
+
+;; Invader (listof Missile) -> Boolean
+;; produces true if the given invader is within the hit range of given list of missiles
+(check-expect (invader-hit? I1 empty) false)
+(check-expect (invader-hit? I1 (list M1 M2 M3)) true)
+(check-expect (invader-hit? I3 (list M2 M3)) false)
+
+;(define (invader-hit? i lom) false) ;stub
+
+(define (invader-hit? i lom)
+  (cond [(empty? lom) false]
+        [else (or
+               (in-range? (first lom) i)
+               (invader-hit? i (rest lom)))]))
+
 
 ;; (listof Missile) (listof Invader) -> (listof Missile)
 ;; advance each missile in the list upward by MISSILE-SPEED,
@@ -235,6 +292,13 @@
 
 (define (move-missile m)
   (make-missile (missile-x m) (- (missile-y m) MISSILE-SPEED)))
+
+;; (listof Missile) (listof Invader) -> (listof Missile)
+;; remove the missile from list if it goes past the top or hits invader
+(check-expect (remove-missiles empty empty) empty) ;base case
+(check-expect (remove-missiles empty (list I1 I2)) empty) ;base case
+(check-expect (remove-missiles (list M1 M2) empty) (list M1 M2)) ;base case
+(check-expect (remove-missiles (list M1 M2) (list I1 I2)) (list M1)) ;M2 hitting I1
 
 (define (remove-missiles lom loi)
   (cond [(empty? lom) empty]
