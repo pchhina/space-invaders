@@ -436,14 +436,48 @@
 
 ;; (listOf Missile) Image -> Image
 ;; render given missiles onto given image
-;; !!!
+(check-expect (render-missiles empty BACKGROUND) BACKGROUND)
+(check-expect (render-missiles (list M1 M2) BACKGROUND)
+              (place-image
+               MISSILE
+               (missile-x M1)
+               (missile-y M1)
+               (place-image
+                MISSILE
+                (missile-x M2)
+                (missile-y M2) BACKGROUND)))
 
-(define (render-missiles lom img) BACKGROUND) ;stub
+;(define (render-missiles lom img) BACKGROUND) ;stub
+
+(define (render-missiles lom img)
+  (cond [(empty? lom) img]
+        [else (render-missile (first lom)
+                              (render-missiles (rest lom) img))]))
+
+;; Missile Image -> Image
+;; render the given missile onto given image
+(check-expect (render-missile M1 BACKGROUND) (place-image
+                                              MISSILE
+                                              (missile-x M1)
+                                              (missile-y M1) BACKGROUND))
+
+;(define (render-missile i img) BACKGROUND) ;stub
+
+(define (render-missile missile img)
+  (place-image MISSILE (missile-x missile) (missile-y missile) img))
+
 
 ;; Tank -> Image
 ;; render tank onto background
-;; !!!
-(define (render-tank t) BACKGROUND) ;stub
+(check-expect (render-tank T0) (place-image
+                                    TANK
+                                    (tank-x T0)
+                                    (- HEIGHT TANK-HEIGHT/2)
+                                    BACKGROUND))
+;(define (render-tank t) BACKGROUND) ;stub
+
+(define (render-tank t)
+  (place-image TANK (tank-x t) (- HEIGHT TANK-HEIGHT/2) BACKGROUND))
 
 ;; Game kevt -> Game
 ;; produces next game state by moving tank left/right on left/right arrow keys
