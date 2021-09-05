@@ -218,9 +218,9 @@
 (define (remove-invaders loi lom)
   (cond [(empty? loi) empty]
         [else (if (invader-hit? (first loi) lom)
-              (remove-invaders (rest loi) lom)
-              (cons (first loi)
-                    (remove-invaders (rest loi) lom)))]))
+                  (remove-invaders (rest loi) lom)
+                  (cons (first loi)
+                        (remove-invaders (rest loi) lom)))]))
 
 ;; Invader (listof Missile) -> Boolean
 ;; produces true if the given invader is within the hit range of given list of missiles
@@ -350,9 +350,100 @@
 
 ;; Game -> Image
 ;; renders given game state as image
+(check-expect (render-game G0) (place-image
+                                TANK
+                                (tank-x T0)
+                                (- HEIGHT TANK-HEIGHT/2)
+                                BACKGROUND))
+(check-expect (render-game G1) (place-image
+                                TANK
+                                (tank-x T1)
+                                (- HEIGHT TANK-HEIGHT/2)
+                                BACKGROUND))
+(check-expect (render-game G2) (place-image
+                                INVADER
+                                (invader-x I1)
+                                (invader-y I1)
+                                (place-image
+                                 MISSILE
+                                 (missile-x M1)
+                                 (missile-y M1)
+                                 (place-image
+                                  TANK
+                                  (tank-x T1)
+                                  (- HEIGHT TANK-HEIGHT/2)
+                                  BACKGROUND))))
+(check-expect (render-game G3) (place-image
+                                INVADER
+                                (invader-x I1)
+                                (invader-y I1)
+                                (place-image
+                                 INVADER
+                                 (invader-x I2)
+                                 (invader-y I2)
+                                 (place-image
+                                  MISSILE
+                                  (missile-x M1)
+                                  (missile-y M1)
+                                  (place-image
+                                   MISSILE
+                                   (missile-x M2)
+                                   (missile-y M2)
+                                   (place-image
+                                    TANK
+                                    (tank-x T1)
+                                    (- HEIGHT TANK-HEIGHT/2)
+                                    BACKGROUND))))))
+
+;(define (render-game g) BACKGROUND) ;stub
+
+(define (render-game s)
+  (render-invaders (game-invaders s)
+                   (render-missiles (game-missiles s)
+                                    (render-tank (game-tank s)))))
+
+;; (listOf Invader) Image -> Image
+;; renders given invaders onto given image
+(check-expect (render-invaders empty BACKGROUND) BACKGROUND)
+(check-expect (render-invaders (list I1 I2) BACKGROUND)
+              (place-image
+               INVADER
+               (invader-x I1)
+               (invader-y I1)
+               (place-image
+                INVADER
+                (invader-x I2)
+                (invader-y I2) BACKGROUND)))
+
+;(define (render-invaders loi img) BACKGROUND) ;stub
+
+(define (render-invaders loi img)
+  (cond [(empty? loi) img]
+        [else (render-invader (first loi)
+                              (render-invaders (rest loi) img))]))
+
+;; Invader Image -> Image
+;; render the given invader onto given image
+(check-expect (render-invader I1 BACKGROUND) (place-image
+                                              INVADER
+                                              (invader-x I1)
+                                              (invader-y I1) BACKGROUND))
+
+;(define (render-invader i img) BACKGROUND) ;stub
+
+(define (render-invader invader img)
+  (place-image INVADER (invader-x invader) (invader-y invader) img))
+
+;; (listOf Missile) Image -> Image
+;; render given missiles onto given image
 ;; !!!
 
-(define (render-game g) BACKGROUND) ;stub
+(define (render-missiles lom img) BACKGROUND) ;stub
+
+;; Tank -> Image
+;; render tank onto background
+;; !!!
+(define (render-tank t) BACKGROUND) ;stub
 
 ;; Game kevt -> Game
 ;; produces next game state by moving tank left/right on left/right arrow keys
