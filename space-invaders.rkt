@@ -114,7 +114,7 @@
     (on-tick next-game-state)    ; Game -> Game
     (to-draw render-game)        ; Game -> Image
     (on-key control-tank)        ; Game kevt -> Game
-    (stop-when invader-landed?))); Game -> Boolean
+    (stop-when game-over?))); Game -> Boolean
 
 ;; Game -> Game
 ;; produces next game state after a clock tick
@@ -142,14 +142,14 @@
 ;; Game -> Game
 ;; produces new game state by adding an invader at INVADE-RATE
 (check-random (spawn-invader G0) (make-game (add-invader (game-invaders G0) (random INVADE-RATE))
-                                                  (game-missiles G0)
-                                                  (game-tank G0)))
+                                            (game-missiles G0)
+                                            (game-tank G0)))
 
 ;(define (spawn-invader G0) G0) ;stub
 (define (spawn-invader s)
   (make-game (add-invader (game-invaders s) (random INVADE-RATE))
-        (game-missiles s)
-       (game-tank s)))
+             (game-missiles s)
+             (game-tank s)))
 
 ;; (ListOf Invader) Nat[0, 99] -> (ListOf Invader)
 ;; adds invader at (random WIDTH), 0 to the given list if n is 0
@@ -158,7 +158,7 @@
 (check-expect (add-invader (list I1 I2) 55) (list I1 I2))
 (check-random (add-invader (list I1 I2) 0)
               (cons (make-invader (random WIDTH) 0 INVADER-X-SPEED)
-              (list I1 I2)))
+                    (list I1 I2)))
 ;(define (add-invader loi n) (list I1) ;stub
 
 (define (add-invader loi n)
@@ -577,8 +577,9 @@
              (game-missiles s)
              (make-tank
               (+ (tank-x (game-tank s))
-                 (* (tank-dir (game-tank s))
-                    TANK-SPEED))
+                 (if (> (tank-x (game-tank s)) 0)
+                     (* (tank-dir (game-tank s)) TANK-SPEED)
+                     0))
               -1)))
 
 ;; Game -> Game
@@ -597,8 +598,9 @@
              (game-missiles s)
              (make-tank
               (+ (tank-x (game-tank s))
-                 (* (tank-dir (game-tank s))
-                    TANK-SPEED))
+                 (if (< (tank-x (game-tank s)) WIDTH)
+                     (* (tank-dir (game-tank s)) TANK-SPEED)
+                     0))
               1)))
 
 ;; Game -> Game
@@ -623,8 +625,35 @@
 
 ;; Game -> Boolean
 ;; produces true if invader reaches land
-;; !!!
+(check-expect (game-over? G0) false)
+(check-expect (game-over? G3) true)
 
-(define (invader-landed? g) false) ;stub
+;(define (game-over? g) false) ;stub
+
+(define (game-over? s)
+  (any-invader-landed? (game-invaders s)))
+
+;; (ListOf Invader) -> Boolean
+;; produces true if any invader reaches land
+(check-expect (any-invader-landed? empty) false)
+(check-expect (any-invader-landed? (list I1)) false)
+(check-expect (any-invader-landed? (list I1 I2)) true)
+
+;(define (any-invader-landed? loi) false)
+(define (any-invader-landed? loi)
+  (cond [(empty? loi) false]
+        [else (or (invader-landed? (first loi))
+                   (any-invader-landed? (rest loi)))]))
+
+;; Invader -> Boolean
+;; produces true if any invader reaches land
+(check-expect (invader-landed? I1) false)
+(check-expect (invader-landed? I2) true)
+(check-expect (invader-landed? I3) true)
+
+;(define (invader-landed? i) false)
+
+(define (invader-landed? invader)
+  (>= (invader-y invader) HEIGHT))
 
 
