@@ -9,8 +9,8 @@
 
 ;; Constants:
 
-(define WIDTH  300)
-(define HEIGHT 500)
+(define WIDTH  600)
+(define HEIGHT 1000)
 
 (define INVADER-X-SPEED 1.5)  ;speeds (not velocities) in pixels per tick
 (define INVADER-Y-SPEED 1.5)
@@ -182,7 +182,7 @@
                                   (+ (invader-y I3)
                                      INVADER-Y-SPEED)
                                   (invader-dx I3))))
-(check-expect (advance-invaders (list I2 I4) (list M1 M2)) ; I4 hitting M2
+(check-expect (advance-invaders (list I2 I1) (list M1 M2)) ; I1 hitting M2
               (list (make-invader (+ (invader-x I2)
                                      (invader-dx I2))
                                   (+ (invader-y I2)
@@ -193,7 +193,7 @@
 ;(define (advance-invaders loi lom) (list I1)) stub
 
 (define (advance-invaders loi lom)
-  (remove-invaders (move-invaders loi) lom))
+  (move-invaders (remove-invaders loi lom)))
 
 ;; (listOf Invader) -> (listof Invader)
 ;; advances each invader in the given list by (invader-dx) and INVADER-Y-SPEED
@@ -305,7 +305,8 @@
                                   (- (missile-y M1) MISSILE-SPEED))))
 (check-expect (advance-missiles (list M1 (make-missile 150 0)) (list I2 I3)) ; missile hitting top
               (list (make-missile (missile-x M1)
-                                  (- (missile-y M1) MISSILE-SPEED))))
+                                  (- (missile-y M1) MISSILE-SPEED))
+                    (make-missile 150 -10)))
 (check-expect (advance-missiles (list M1 (make-missile 150 (-(image-height MISSILE)))) ; missile past top
                                 (list I2 I3))
               (list (make-missile (missile-x M1)
@@ -314,7 +315,7 @@
 ;(define (advance-missiles lom loi) (list M1))
 
 (define (advance-missiles lom loi)
-  (remove-missiles (move-missiles lom) loi))
+  (move-missiles (remove-missiles lom loi)))
 
 ;; (listOf Missile) -> (listof Missile)
 ;; produces a (listof Missile) by advancing each missile by MISSILE-SPEED in input list
@@ -395,6 +396,10 @@
   (<= (sqrt (+ (sqr (- (missile-x m) (invader-x i)))
                (sqr (- (missile-y m) (invader-y i)))))
       HIT-RANGE))
+#;
+(define (in-range? m i)
+  (and (< (abs (- (missile-x m) (invader-x i))) HIT-RANGE)
+      (< (abs (- (missile-y m ) (invader-y i))) HIT-RANGE)))
 
 
 
