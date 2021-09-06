@@ -134,13 +134,41 @@
 ;(define (next-game-state s) G0) ;stub
 
 (define (next-game-state s)
-  (make-game (advance-invaders (game-invaders s) (game-missiles s))
-             (advance-missiles (game-missiles s) (game-invaders s))
-             (game-tank s)))
+  (spawn-invader (make-game
+                  (advance-invaders (game-invaders s) (game-missiles s))
+                  (advance-missiles (game-missiles s) (game-invaders s))
+                  (game-tank s))))
+
+;; Game -> Game
+;; produces new game state by adding an invader at INVADE-RATE
+(check-random (spawn-invader G0) (make-game (add-invader (game-invaders G0) (random INVADE-RATE))
+                                                  (game-missiles G0)
+                                                  (game-tank G0)))
+
+;(define (spawn-invader G0) G0) ;stub
+(define (spawn-invader s)
+  (make-game (add-invader (game-invaders s) (random INVADE-RATE))
+        (game-missiles s)
+       (game-tank s)))
+
+;; (ListOf Invader) Nat[0, 99] -> (ListOf Invader)
+;; adds invader at (random WIDTH), 0 to the given list if n is 0
+(check-expect (add-invader empty 5) empty)
+(check-random (add-invader empty 0) (list (make-invader (random WIDTH) 0 INVADER-X-SPEED)))
+(check-expect (add-invader (list I1 I2) 55) (list I1 I2))
+(check-random (add-invader (list I1 I2) 0)
+              (cons (make-invader (random WIDTH) 0 INVADER-X-SPEED)
+              (list I1 I2)))
+;(define (add-invader loi n) (list I1) ;stub
+
+(define (add-invader loi n)
+  (cond [(= 0 n) (cons (make-invader (random WIDTH) 0 INVADER-X-SPEED) loi)]
+        [else loi]))
 
 ;; (listof Invader) (listof Missile) -> (listof Invader)
 ;; advance each invader in the list by (invader-dx) and INVADER-Y-SPEED
 ;; remove the invader from the list if it hits the missile
+;; flip dx if it hits the side wall
 (check-expect (advance-invaders empty empty) empty) ; base case
 (check-expect (advance-invaders empty (list M1 M2)) empty) ; base case
 (check-expect (advance-invaders (list I2 I3) (list M1 M2)) ; not hitting missile
@@ -196,6 +224,8 @@
                                                (+ (invader-y I1)
                                                   INVADER-Y-SPEED)
                                                (invader-dx I1)))
+(check-expect (move-invader (make-invader 0 150 -10))
+              (make-invader -10 (+ 150 INVADER-Y-SPEED) 10))
 
 ;(define (move-invader i) I1)
 
@@ -204,7 +234,27 @@
                    (invader-dx invader))
                 (+ (invader-y invader)
                    INVADER-Y-SPEED)
-                (invader-dx invader)))
+                (if (bounce-invader? invader)
+                    (-(invader-dx invader))
+                    (invader-dx invader))))
+
+;; Invader -> Boolean
+;; produces true if invader hits left or right wall
+(check-expect (bounce-invader? I1) false) ; no hitting
+(check-expect (bounce-invader? (make-invader 0 150 -10)) true) ; touching left going left
+(check-expect (bounce-invader? (make-invader WIDTH 150 -10)) false) ; touching right going left
+(check-expect (bounce-invader? (make-invader 0 150 10)) false) ;touching left going right
+(check-expect (bounce-invader? (make-invader WIDTH 150 10)) true) ; touching right going right
+
+;(define (bounce-invader? invader) false) ;stub
+
+(define (bounce-invader? invader)
+  (or (and
+       (<= (invader-x invader) 0)
+       (<= (invader-dx invader) 0))
+      (and
+       (>= (invader-x invader) WIDTH)
+       (>= (invader-dx invader) 0))))
 
 ;; (listof Invader) (listof Missile) -> (listof Invader)
 ;; removes invaders from the given list if it is within any missiles hit range
