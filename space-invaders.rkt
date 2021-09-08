@@ -119,8 +119,17 @@
 
 ;; Game -> Game
 ;; produces next game state after a clock tick
-(check-expect (next-game-state G0) G0) ;only tank
-(check-expect (next-game-state G1) G1) ;only tank
+(check-expect (next-game-state G0)
+              (make-game empty empty ;only tank
+                         (make-tank (+
+                                     (tank-x (game-tank G0))
+                                     (* TANK-SPEED 1))
+                                    1))) 
+(check-expect (next-game-state G1)
+              (make-game empty empty
+                         (make-tank (+ (tank-x (game-tank G1))
+                                       (* TANK-SPEED 1))
+                                    1))) ;only tank
 (check-expect (next-game-state G2) (make-game
                                     (list (make-invader (+ (invader-x I1)
                                                            (invader-dx I1))
@@ -130,7 +139,10 @@
                                     (list (make-missile (missile-x M1)
                                                         (- (missile-y M1)
                                                            MISSILE-SPEED)))
-                                    T1))
+                                    (make-tank (+ (tank-x (game-tank G2))
+                                                  (* TANK-SPEED
+                                                     (tank-dir (game-tank G2))))
+                                               (tank-dir (game-tank G2)))))
 
 ;(define (next-game-state s) G0) ;stub
 
@@ -138,7 +150,7 @@
   (spawn-invader (make-game
                   (advance-invaders (game-invaders s) (game-missiles s))
                   (advance-missiles (game-missiles s) (game-invaders s))
-                  (game-tank s))))
+                  (next-tank (game-tank s)))))
 
 ;; Game -> Game
 ;; produces new game state by adding an invader at INVADE-RATE
@@ -538,19 +550,11 @@
 (check-expect (control-tank G0 "left")
               (make-game (game-invaders G0)
                          (game-missiles G0)
-                         (make-tank
-                          (+ (tank-x (game-tank G0))
-                             (* (tank-dir (game-tank G0))
-                                TANK-SPEED))
-                          -1)  ))
+                         (make-tank (tank-x (game-tank G0)) -1)))
 (check-expect (control-tank G0 "right")
               (make-game (game-invaders G0)
                          (game-missiles G0)
-                         (make-tank
-                          (+ (tank-x (game-tank G0))
-                             (* (tank-dir (game-tank G0))
-                                TANK-SPEED))
-                          1)  ))
+                         (make-tank (tank-x (game-tank G0)) 1)))
 (check-expect (control-tank G0 "down") G0)
 (check-expect (control-tank G0 " ")
               (make-game (game-invaders G0)
@@ -563,56 +567,51 @@
 ;(define (control-tank g kevt) G0) ;stub
 
 (define (control-tank g kevt)
-  (cond [(key=? kevt "left") (move-tank-left g)]
-        [(key=? kevt "right") (move-tank-right g)]
+  (cond [(key=? kevt "left") (turn-tank-left g)]
+        [(key=? kevt "right") (turn-tank-right g)]
         [(key=? kevt " ") (shoot-missile g)]
         [else g]))
 
+;; Tank -> Tank
+;; produces next tank state by moving it by TANK-SPEED in (tank-dir t) direction
+(check-expect (next-tank T0) (make-tank (+ (tank-x T0)
+                                           (* (tank-dir T0) TANK-SPEED))
+                                        (tank-dir T0)))
+(check-expect (next-tank T2) (make-tank (+ (tank-x T2)
+                                           (* (tank-dir T2) TANK-SPEED))
+                                        (tank-dir T2)))
+;(define (next-tank t) T0) ;stub
+(define (next-tank t)
+  (make-tank (+(tank-x t)
+               (* (tank-dir t) TANK-SPEED)) (tank-dir t)))
+
 ;; Game -> Game
 ;; produces a game by moving tank left by TANK-SPEED in the given game
-(check-expect (move-tank-left G0)
+(check-expect (turn-tank-left G0)
               (make-game (game-invaders G0)
                          (game-missiles G0)
-                         (make-tank
-                          (+ (tank-x (game-tank G0))
-                             (* (tank-dir (game-tank G0))
-                                TANK-SPEED))
-                          -1)  ))
+                         (make-tank (tank-x (game-tank G0)) -1)))
 
-;(define (move-tank-left g) G0) ;stub
+;(define (turn-tank-left g) G0) ;stub
 
-(define (move-tank-left s)
+(define (turn-tank-left s)
   (make-game (game-invaders s)
              (game-missiles s)
-             (make-tank
-              (+ (tank-x (game-tank s))
-                 (if (> (tank-x (game-tank s)) 0)
-                     (* (tank-dir (game-tank s)) TANK-SPEED)
-                     0))
-              -1)))
+             (make-tank (tank-x (game-tank s)) -1)))
 
 ;; Game -> Game
 ;; produce a game by moving tank right by TANK-SPEED in the given game
-(check-expect (move-tank-right G0)
+(check-expect (turn-tank-right G0)
               (make-game (game-invaders G0)
                          (game-missiles G0)
-                         (make-tank
-                          (+ (tank-x (game-tank G0))
-                             (* (tank-dir (game-tank G0))
-                                TANK-SPEED))
-                          1)  ))
+                         (make-tank (tank-x (game-tank G0)) 1)  ))
 
-;(define (move-tank-right g) G0) ;stub
+;(define (turn-tank-right g) G0) ;stub
 
-(define (move-tank-right s)
+(define (turn-tank-right s)
   (make-game (game-invaders s)
              (game-missiles s)
-             (make-tank
-              (+ (tank-x (game-tank s))
-                 (if (< (tank-x (game-tank s)) WIDTH)
-                     (* (tank-dir (game-tank s)) TANK-SPEED)
-                     0))
-              1)))
+             (make-tank (tank-x (game-tank s)) 1)))
 
 ;; Game -> Game
 ;; produce a game by shooting a missile from the tank in the given game
